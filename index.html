@@ -97,14 +97,14 @@
         </div>
       </div>
 
-      <!-- Search Box -->
+      <!-- Premium Search Box -->
       <div class="search-wrap">
         <div class="search-box" id="search-box">
           <i class="fa-solid fa-magnifying-glass search-icon"></i>
-          <input type="text" id="search-input" placeholder="Search food, restaurants, cuisines..." autocomplete="off">
+          <input type="text" id="search-input" placeholder="🔍 Search food, restaurants..." autocomplete="off" oninput="FHP.liveSearch(this.value)" onfocus="FHP.liveSearch(this.value)">
           <button class="clear-btn" id="clear-btn" onclick="FHP.clearSearch()"><i class="fa-solid fa-xmark"></i></button>
         </div>
-        <div id="search-dropdown" class="search-dropdown glass shadow-card"></div>
+        <div id="search-dropdown" class="search-dropdown"></div>
       </div>
 
       <!-- Nav Actions -->
@@ -595,6 +595,20 @@
   <!-- TOAST NOTIFICATION                  -->
   <!-- ===================================== -->
   <div id="toast" class="toast glass"></div>
+
+  <!-- ===================================== -->
+  <!-- OFFER MODAL                           -->
+  <!-- ===================================== -->
+  <div id="offer-modal-overlay" onclick="FHP.closeOfferModal()">
+    <div id="offer-modal" onclick="event.stopPropagation()">
+      <div class="offer-modal-header">
+        <h3 id="offer-modal-title">🎁 Offer Results</h3>
+        <button class="offer-close-btn" onclick="FHP.closeOfferModal()">✕</button>
+      </div>
+      <div id="offer-modal-body"></div>
+    </div>
+  </div>
+
 
   <!-- ===================================== -->
   <!-- SCRIPTS                             -->

@@ -125,13 +125,20 @@ const FHP = {
       </div>
     `).join('');
 
-    // Offers
+    // Offers - clickable with modal
     const offRow = document.getElementById('offers-scroll');
-    const gradients = ['linear-gradient(135deg, #ff416c, #ff4b2b)', 'linear-gradient(135deg, #11998e, #38ef7d)', 'linear-gradient(135deg, #8E2DE2, #4A00E0)', 'linear-gradient(135deg, #f12711, #f5af19)'];
+    const gradients = [
+      'linear-gradient(135deg,#ff416c,#ff4b2b)',
+      'linear-gradient(135deg,#11998e,#38ef7d)',
+      'linear-gradient(135deg,#8e2de2,#4a00e0)',
+      'linear-gradient(135deg,#f12711,#f5af19)',
+      'linear-gradient(135deg,#0f2027,#2c5364)'
+    ];
     offRow.innerHTML = Object.keys(APP_DATA.coupons).map((k, i) => {
       const c = APP_DATA.coupons[k];
       return `
-      <div class="offer-card" style="background:${gradients[i%4]}" onclick="FHP.copyCoupon('${k}')">
+      <div class="offer-card" style="background:${gradients[i%5]}" onclick="FHP.openOfferModal('${k}')">
+        <div class="offer-badge">Tap to use</div>
         <div class="offer-code">${k}</div>
         <div class="offer-desc">${c.desc}</div>
       </div>
@@ -948,8 +955,158 @@ const FHP = {
     const i = document.getElementById(id);
     if(i.type === 'password') { i.type = 'text'; icon.classList.replace('fa-eye', 'fa-eye-slash'); }
     else { i.type = 'password'; icon.classList.replace('fa-eye-slash', 'fa-eye'); }
-  }
+  },
+
+  // ---- 🔥 LIVE SEARCH DROPDOWN ----
+  liveSearch(query) {
+    const dropdown = document.getElementById('search-dropdown');
+    const clearBtn = document.getElementById('clear-btn');
+    const q = (query || '').toLowerCase().trim();
+
+    if(clearBtn) clearBtn.style.display = q ? 'block' : 'none';
+
+    if(!q) {
+      dropdown.classList.remove('visible');
+      dropdown.innerHTML = '';
+      return;
+    }
+
+    dropdown.classList.add('visible');
+
+    // Search across restaurants + menus
+    const restMatches = APP_DATA.restaurants.filter(r =>
+      r.name.toLowerCase().includes(q) ||
+      r.cuisines.some(c => c.toLowerCase().includes(q))
+    ).slice(0, 3);
+
+    const itemMatches = [];
+    APP_DATA.restaurants.forEach(r => {
+      r.menu.forEach(m => {
+        if (itemMatches.length < 5 && (m.name.toLowerCase().includes(q) || m.description.toLowerCase().includes(q))) {
+          itemMatches.push({ ...m, restId: r.id, restName: r.name });
+        }
+      });
+    });
+
+    let html = '';
+    if(restMatches.length === 0 && itemMatches.length === 0) {
+      html = `<div class="sdrop-empty">😕 No results for "<strong>${query}</strong>"</div>`;
+    } else {
+      if(restMatches.length > 0) {
+        html += `<div class="sdrop-section">🍽️ Restaurants</div>`;
+        html += restMatches.map(r => `
+          <div class="sdrop-item" onclick="FHP.navigate('menu','${r.id}'); FHP.closeLiveSearch()">
+            <div class="sdrop-item-icon"><img src="${r.image}" alt="${r.name}"></div>
+            <div class="sdrop-text">
+              <div class="sdrop-name">${r.name.replace(new RegExp(q,'gi'), m => `<mark style="background:var(--accent-light);border-radius:2px;">${m}</mark>`)}</div>
+              <div class="sdrop-sub">${r.cuisines.join(', ')} • ${r.deliveryTime} mins</div>
+            </div>
+          </div>
+        `).join('');
+      }
+      if(itemMatches.length > 0) {
+        html += `<div class="sdrop-section">🍔 Food Items</div>`;
+        html += itemMatches.map(m => `
+          <div class="sdrop-item" onclick="FHP.navigate('menu','${m.restId}'); FHP.closeLiveSearch()">
+            <div class="sdrop-item-icon"><img src="${m.image}" alt="${m.name}"></div>
+            <div class="sdrop-text">
+              <div class="sdrop-name">${m.name.replace(new RegExp(q,'gi'), match => `<mark style="background:var(--accent-light);border-radius:2px;">${match}</mark>`)}</div>
+              <div class="sdrop-sub">from ${m.restName}</div>
+            </div>
+            <div class="sdrop-price">₹${m.price}</div>
+          </div>
+        `).join('');
+      }
+    }
+    dropdown.innerHTML = html;
+
+    // Navigate to search page on Enter
+    const input = document.getElementById('search-input');
+    if(input) {
+      input.onkeydown = (e) => {
+        if(e.key === 'Enter') {
+          this.navigate('search');
+          const pi = document.getElementById('search-page-input');
+          if(pi) { pi.value = query; this.pageSearch(query); }
+          this.closeLiveSearch();
+        }
+      };
+    }
+  },
+
+  closeLiveSearch() {
+    const d = document.getElementById('search-dropdown');
+    if(d) { d.classList.remove('visible'); d.innerHTML = ''; }
+    const inp = document.getElementById('search-input');
+    if(inp) inp.value = '';
+  },
+
+  clearSearch() {
+    this.closeLiveSearch();
+  },
+
+  // ---- 🎁 OFFER MODAL (Filter by coupon) ----
+  openOfferModal(couponCode) {
+    const overlay = document.getElementById('offer-modal-overlay');
+    const title = document.getElementById('offer-modal-title');
+    const body = document.getElementById('offer-modal-body');
+    if(!overlay || !body) return;
+
+    const coupon = APP_DATA.coupons[couponCode];
+    if(!coupon) return;
+
+    title.innerHTML = `🎁 ${couponCode} — ${coupon.desc}`;
+
+    // Filter matching restaurants
+    const matching = APP_DATA.restaurants.filter(r =>
+      r.menu.some(m => {
+        if(coupon.type === 'flat') return m.price >= coupon.minOrder;
+        if(coupon.type === 'percent') return m.price >= coupon.minOrder;
+        return true;
+      })
+    );
+
+    if(matching.length === 0) {
+      body.innerHTML = `<p style="text-align:center;padding:24px;color:var(--text-secondary);">No restaurants qualify for this offer.</p>`;
+    } else {
+      body.innerHTML = `
+        <p style="color:var(--text-secondary);font-size:.9rem;margin-bottom:16px;">✅ These restaurants support <strong>${couponCode}</strong>:</p>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          ${matching.map(r => `
+            <div onclick="FHP.navigate('menu','${r.id}'); FHP.closeOfferModal()" style="display:flex;align-items:center;gap:14px;padding:14px;border:1.5px solid var(--border);border-radius:14px;cursor:pointer;background:#fff;transition:all .2s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+              <img src="${r.image}" style="width:62px;height:62px;border-radius:10px;object-fit:cover;flex-shrink:0;">
+              <div style="flex:1;">
+                <div style="font-weight:800;">${r.name}</div>
+                <div style="font-size:.85rem;color:var(--text-secondary);">${r.cuisines.join(', ')} • ${r.deliveryTime} mins</div>
+              </div>
+              <div style="color:var(--accent);font-weight:700;font-size:.85rem;">${r.offer || coupon.desc}</div>
+            </div>
+          `).join('')}
+        </div>
+        <button class="btn btn-primary" style="width:100%;margin-top:20px;" onclick="document.getElementById('coupon-input') && (document.getElementById('coupon-input').value='${couponCode}'); FHP.closeOfferModal(); FHP.navigate('cart')">
+          Apply ${couponCode} to Cart 🛒
+        </button>
+      `;
+    }
+
+    overlay.classList.add('show');
+  },
+
+  closeOfferModal() {
+    const o = document.getElementById('offer-modal-overlay');
+    if(o) o.classList.remove('show');
+  },
 };
 
 // Launch
-window.onload = () => FHP.init();
+window.onload = () => {
+  FHP.init();
+  // Close dropdown on outside click
+  document.addEventListener('click', (e) => {
+    const sw = document.getElementById('search-box');
+    const sd = document.getElementById('search-dropdown');
+    if(sw && sd && !sw.contains(e.target)) {
+      sd.classList.remove('visible');
+    }
+  });
+};
