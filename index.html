@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GITAM Food Hub Pro 🔥 — Order Food Online</title>
+  <meta name="description" content="Order food online from top restaurants near GITAM University. Fast delivery, great offers. Like Swiggy & Zomato, but smarter.">
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <!-- FontAwesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <!-- CSS -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ===================================== -->
+  <!-- SPLASH SCREEN                         -->
+  <!-- ===================================== -->
+  <div id="splash-screen">
+    <div class="splash-inner">
+      <div class="splash-logo">🍔</div>
+      <h1 class="splash-title">GITAM<span class="splash-accent">Food</span>Hub</h1>
+      <div class="splash-bar"><div class="splash-progress"></div></div>
+      <p class="splash-sub">Crafting your experience...</p>
+    </div>
+  </div>
+
+  <!-- ===================================== -->
+  <!-- NOTIFICATION PANEL (SLIDE-IN)         -->
+  <!-- ===================================== -->
+  <div id="notif-overlay" class="overlay" onclick="FHP.closeNotif()"></div>
+  <div id="notif-panel" class="side-panel">
+    <div class="panel-header">
+      <h3><i class="fa-solid fa-bell"></i> Notifications</h3>
+      <button class="close-btn" onclick="FHP.closeNotif()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div id="notif-list" class="panel-body"></div>
+  </div>
+
+  <!-- ===================================== -->
+  <!-- ADMIN PANEL (SLIDE-IN)                -->
+  <!-- ===================================== -->
+  <div id="admin-overlay" class="overlay" onclick="FHP.closeAdmin()"></div>
+  <div id="admin-panel" class="side-panel admin-side-panel">
+    <div class="panel-header">
+      <h3><i class="fa-solid fa-shield-halved"></i> Admin Panel</h3>
+      <button class="close-btn" onclick="FHP.closeAdmin()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="panel-body">
+      <div class="admin-stats" id="admin-stats"></div>
+      <div class="admin-tabs">
+        <button class="admin-tab active" onclick="FHP.switchAdminTab(this,'orders')">📦 Orders</button>
+        <button class="admin-tab" onclick="FHP.switchAdminTab(this,'restaurants')">🍽️ Restaurants</button>
+        <button class="admin-tab" onclick="FHP.switchAdminTab(this,'offers')">🎁 Offers</button>
+      </div>
+      <div id="admin-content" class="admin-content"></div>
+    </div>
+  </div>
+
+  <!-- ===================================== -->
+  <!-- ITEM CUSTOMIZATION MODAL              -->
+  <!-- ===================================== -->
+  <div id="customizer-overlay" class="overlay" onclick="FHP.closeCustomizer()"></div>
+  <div id="customizer-modal" class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div id="customizer-inner"></div>
+  </div>
+
+  <!-- ===================================== -->
+  <!-- REVIEW MODAL                          -->
+  <!-- ===================================== -->
+  <div id="review-overlay" class="overlay" onclick="FHP.closeReviewModal()"></div>
+  <div id="review-modal" class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div id="review-inner"></div>
+  </div>
+
+  <!-- ===================================== -->
+  <!-- STICKY GLASSMORPHISM NAV              -->
+  <!-- ===================================== -->
+  <nav class="navbar glass" id="main-nav">
+    <div class="nav-container">
+      <!-- Logo -->
+      <div class="nav-logo" onclick="FHP.navigate('home')">
+        <span class="logo-icon">🍔</span>
+        <span class="logo-text">GITAM<span class="logo-accent">Hub</span></span>
+      </div>
+
+      <!-- Location Bar -->
+      <div class="location-bar" id="location-bar" onclick="FHP.promptLocation()">
+        <i class="fa-solid fa-location-dot location-dot"></i>
+        <div class="location-text">
+          <span class="loc-label">Delivering to</span>
+          <span class="loc-place" id="loc-place">GITAM Campus ▾</span>
+        </div>
+      </div>
+
+      <!-- Search Box -->
+      <div class="search-wrap">
+        <div class="search-box" id="search-box">
+          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <input type="text" id="search-input" placeholder="Search food, restaurants, cuisines..." autocomplete="off">
+          <button class="clear-btn" id="clear-btn" onclick="FHP.clearSearch()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div id="search-dropdown" class="search-dropdown glass shadow-card"></div>
+      </div>
+
+      <!-- Nav Actions -->
+      <div class="nav-actions">
+        <button class="nav-icon-btn" id="theme-toggle" onclick="FHP.toggleTheme()" title="Toggle Theme">
+          <i class="fa-solid fa-moon" id="theme-icon"></i>
+        </button>
+        <button class="nav-icon-btn" id="notif-btn" onclick="FHP.openNotif()" title="Notifications">
+          <i class="fa-solid fa-bell"></i>
+          <span class="badge" id="notif-badge" style="display:none">3</span>
+        </button>
+        <button class="nav-icon-btn wishlist-nav" onclick="FHP.navigate('wishlist')" title="Wishlist">
+          <i class="fa-solid fa-heart"></i>
+        </button>
+        <div id="auth-nav-area">
+          <button class="nav-btn-login" onclick="FHP.navigate('auth')">
+            <i class="fa-solid fa-user"></i> Login
+          </button>
+        </div>
+        <button class="cart-nav-btn" onclick="FHP.navigate('cart')">
+          <i class="fa-solid fa-bag-shopping"></i>
+          <span class="cart-badge" id="cart-badge">0</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ===================================== -->
+  <!-- MOBILE BOTTOM NAV                     -->
+  <!-- ===================================== -->
+  <nav class="mobile-bottom-nav glass" id="mobile-nav">
+    <button class="mob-nav-btn active" id="mnav-home" onclick="FHP.navigate('home'); FHP.setMobNav(this)">
+      <i class="fa-solid fa-house"></i><span>Home</span>
+    </button>
+    <button class="mob-nav-btn" id="mnav-search" onclick="FHP.navigate('search'); FHP.setMobNav(this)">
+      <i class="fa-solid fa-magnifying-glass"></i><span>Search</span>
+    </button>
+    <button class="mob-nav-btn" id="mnav-orders" onclick="FHP.navigate('orders'); FHP.setMobNav(this)">
+      <i class="fa-solid fa-bag-shopping"></i><span>Orders</span>
+    </button>
+    <button class="mob-nav-btn" id="mnav-profile" onclick="FHP.navigate('profile'); FHP.setMobNav(this)">
+      <i class="fa-solid fa-user"></i><span>Profile</span>
+    </button>
+  </nav>
+
+  <!-- ===================================== -->
+  <!-- MAIN CONTENT AREA                     -->
+  <!-- ===================================== -->
+  <main class="main-wrapper" id="main-wrapper">
+
+    <!-- ======================== -->
+    <!-- VIEW: AUTH               -->
+    <!-- ======================== -->
+    <section id="view-auth" class="view">
+      <div class="auth-outer">
+        <div class="auth-card glass tilt-card">
+          <div class="auth-emoji">🍔</div>
+          <h2 class="auth-title">Welcome Back!</h2>
+          <p class="auth-sub">Login to order food & track your deliveries</p>
+
+          <div class="auth-tabs">
+            <button class="atab active" id="atab-login" onclick="FHP.switchAuthTab('login')">Login</button>
+            <button class="atab" id="atab-signup" onclick="FHP.switchAuthTab('signup')">Sign Up</button>
+          </div>
+
+          <!-- Login Form (Firebase OTP Flow) -->
+          <form id="login-form" class="auth-form active-form" onsubmit="event.preventDefault()">
+            
+            <!-- Step 1: Send OTP -->
+            <div id="otp-step-1">
+              <div class="fld-group">
+                <label>Phone Number</label>
+                <div class="fld-row">
+                  <span class="fld-prefix">+91</span>
+                  <input type="tel" id="login-phone" maxlength="10" placeholder="10-digit mobile number" required>
+                </div>
+              </div>
+              <div id="recaptcha"></div>
+              <button type="button" class="btn btn-primary btn-full auth-submit" onclick="window.sendOTP && window.sendOTP()" style="margin-top: 16px;">
+                <i class="fa-solid fa-paper-plane"></i> Send OTP
+              </button>
+            </div>
+
+            <!-- Step 2: Verify OTP -->
+            <div id="otp-step-2" style="display:none">
+              <div class="fld-group">
+                <label>Enter OTP</label>
+                <div class="fld-row">
+                  <input type="text" id="login-otp" placeholder="6-digit OTP code" maxlength="6" style="padding-left: 16px; letter-spacing: 4px; font-weight: 800; text-align: center;">
+                </div>
+              </div>
+              <button type="button" class="btn btn-success btn-full auth-submit" onclick="window.verifyOTP && window.verifyOTP()" style="background: var(--success); color: white; margin-top: 16px;">
+                <i class="fa-solid fa-check"></i> Verify & Login
+              </button>
+            </div>
+
+            <p class="quick-login-hint" style="margin-top: 24px;">Firebase OTP ready! Add your config in <strong>js/auth.js</strong>.</p>
+          </form>
+
+          <!-- Signup Form -->
+          <form id="signup-form" class="auth-form" onsubmit="FHP.signup(event)">
+            <div class="fld-group">
+              <label>Full Name</label>
+              <input type="text" id="signup-name" placeholder="Your full name" required>
+              <span class="err-msg" id="err-signup-name"></span>
+            </div>
+            <div class="fld-group">
+              <label>Phone Number</label>
+              <div class="fld-row">
+                <span class="fld-prefix">+91</span>
+                <input type="tel" id="signup-phone" maxlength="10" placeholder="10-digit mobile number" required>
+              </div>
+              <span class="err-msg" id="err-signup-phone"></span>
+            </div>
+            <div class="fld-group">
+              <label>Password (8-10 chars, alphanumeric)</label>
+              <div class="fld-row">
+                <input type="password" id="signup-pwd" maxlength="10" placeholder="Create password" required>
+                <i class="fa-solid fa-eye toggle-pwd" onclick="FHP.togglePwd('signup-pwd', this)"></i>
+              </div>
+              <span class="err-msg" id="err-signup-pwd"></span>
+            </div>
+            <button type="submit" class="btn btn-primary btn-full auth-submit">
+              <i class="fa-solid fa-user-plus"></i> Create Account
+            </button>
+          </form>
+        </div>
+        <div class="auth-bg-art">
+          <div class="food-float f1">🍕</div>
+          <div class="food-float f2">🍔</div>
+          <div class="food-float f3">🍜</div>
+          <div class="food-float f4">🍰</div>
+          <div class="food-float f5">🧃</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================== -->
+    <!-- VIEW: HOME               -->
+    <!-- ======================== -->
+    <section id="view-home" class="view active">
+
+      <!-- HERO -->
+      <div class="hero-section">
+        <div class="hero-content">
+          <div class="hero-badge"><i class="fa-solid fa-bolt"></i> Lightning Fast Delivery</div>
+          <h1 class="hero-h1">Crave it. <span class="hero-accent">Order it.</span><br>Get it in 25 mins.</h1>
+          <p class="hero-sub">Fresh from the best restaurants near GITAM. No compromise on taste.</p>
+          <div class="hero-cta-row">
+            <button class="btn btn-primary btn-hero" onclick="document.getElementById('restaurants-section').scrollIntoView({behavior:'smooth'})">
+              <i class="fa-solid fa-utensils"></i> Order Now
+            </button>
+            <button class="btn btn-outline btn-hero" onclick="FHP.navigate('search')">
+              <i class="fa-solid fa-magnifying-glass"></i> Explore Food
+            </button>
+          </div>
+          <div class="hero-stats">
+            <div class="hstat"><span class="hstat-num">6+</span><span class="hstat-lbl">Restaurants</span></div>
+            <div class="hstat-sep">•</div>
+            <div class="hstat"><span class="hstat-num">100+</span><span class="hstat-lbl">Menu Items</span></div>
+            <div class="hstat-sep">•</div>
+            <div class="hstat"><span class="hstat-num">25 min</span><span class="hstat-lbl">Avg Delivery</span></div>
+          </div>
+        </div>
+        <div class="hero-visual">
+          <div class="hero-ring ring1"></div>
+          <div class="hero-ring ring2"></div>
+          <div class="hero-ring ring3"></div>
+          <img src="https://cdn-icons-png.flaticon.com/512/3075/3075977.png" alt="Food Delivery" class="hero-img float-anim">
+        </div>
+      </div>
+
+      <!-- LIVE BANNER (Smart: Only 3 Left, 20 People Ordered) -->
+      <div class="live-ticker" id="live-ticker">
+        <span class="live-dot"></span>
+        <span id="live-msg">🔥 20 people are ordering Chicken Biryani right now!</span>
+      </div>
+
+      <!-- CATEGORY CHIPS -->
+      <div class="section-wrap">
+        <div class="section-hdr">
+          <h2><i class="fa-solid fa-grip" style="color:var(--accent)"></i> What's on your mind?</h2>
+        </div>
+        <div class="category-row" id="category-row"></div>
+      </div>
+
+      <!-- OFFERS SECTION -->
+      <div class="section-wrap">
+        <div class="section-hdr">
+          <h2><i class="fa-solid fa-bolt" style="color:#f5af19"></i> Best Offers</h2>
+          <span class="see-all">All Offers</span>
+        </div>
+        <div class="offers-scroll" id="offers-scroll"></div>
+      </div>
+
+      <!-- RECOMMENDED (Personalized) -->
+      <div class="section-wrap" id="recommended-section" style="display:none">
+        <div class="section-hdr">
+          <h2><i class="fa-solid fa-star" style="color:#f5af19"></i> Recommended for You ✨</h2>
+        </div>
+        <div class="horiz-scroll" id="recommended-row"></div>
+      </div>
+
+      <!-- RESTAURANT GRID -->
+      <div class="section-wrap" id="restaurants-section">
+        <div class="section-hdr">
+          <h2><i class="fa-solid fa-store" style="color:var(--accent)"></i> Restaurants Near You</h2>
+          <div class="filter-chips" id="filter-chips">
+            <button class="fchip active" onclick="FHP.filterRestaurants('all', this)">All</button>
+            <button class="fchip" onclick="FHP.filterRestaurants('veg', this)">🌱 Pure Veg</button>
+            <button class="fchip" onclick="FHP.filterRestaurants('fast', this)">⚡ Fastest</button>
+            <button class="fchip" onclick="FHP.filterRestaurants('rated', this)">⭐ Top Rated</button>
+            <button class="fchip" onclick="FHP.filterRestaurants('low', this)">💰 Budget</button>
+          </div>
+        </div>
+        <!-- Skeleton loading -->
+        <div class="rest-grid" id="skeleton-grid">
+          <div class="skel-card"><div class="skel skel-img"></div><div class="skel skel-txt"></div><div class="skel skel-txt sm"></div></div>
+          <div class="skel-card"><div class="skel skel-img"></div><div class="skel skel-txt"></div><div class="skel skel-txt sm"></div></div>
+          <div class="skel-card"><div class="skel skel-img"></div><div class="skel skel-txt"></div><div class="skel skel-txt sm"></div></div>
+        </div>
+        <div class="rest-grid" id="rest-grid" style="display:none"></div>
+      </div>
+
+    </section>
+
+    <!-- ======================== -->
+    <!-- VIEW: SEARCH             -->
+    <!-- ======================== -->
+    <section id="view-search" class="view">
+      <div class="search-page">
+        <div class="search-page-box">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="search-page-input" placeholder="Search food, restaurants, cuisines..." oninput="FHP.pageSearch(this.value)">
+        </div>
+        <div id="search-trending" class="trending-section">
+          <h3>🔥 Trending Searches</h3>
+          <div class="trending-chips" id="trending-chips"></div>
+          <h3 class="mt-md">🍽️ Popular Categories</h3>
+          <div class="category-grid" id="search-cat-grid"></div>
+        </div>
+        <div id="search-results-page" class="search-results-wrap" style="display:none"></div>
+      </div>
+    </section>
+
+    <!-- ======================== -->
+    <!-- VIEW: MENU               -->
+    <!-- ======================== -->
+    <section id="view-menu" class="view">
+
+      <div class="menu-back-btn" onclick="FHP.navigate('home')">
+        <i class="fa-solid fa-arrow-left"></i> Back
+      </div>
+
+      <!-- Restaurant Banner -->
+      <div class="rest-banner glass" id="rest-banner">
+        <!-- Injected by JS -->
+      </div>
+
+      <!-- Info Tabs -->
+      <div class="menu-tabs">
+        <button class="mtab active" id="mtab-menu" onclick="FHP.switchMenuTab('menu', this)">Menu</button>
+        <button class="mtab" id="mtab-reviews" onclick="FHP.switchMenuTab('reviews', this)">Reviews</button>
+        <button class="mtab" id="mtab-info" onclick="FHP.switchMenuTab('info', this)">Info</button>
+      </div>
+
+      <!-- Menu Content -->
+      <div id="menu-tab-content">
+
+        <!-- MENU TAB -->
+        <div id="menu-tab" class="tab-pane active">
+          <!-- Advanced Filter Bar -->
+          <div class="menu-filter-bar glass sticky-filter" id="menu-filter-bar">
+            <!-- Filter Toggles -->
+            <div class="diet-filter-group">
+              <button class="diet-btn active" data-type="all" onclick="FHP.setDietFilter('all', this)">⚪ All</button>
+              <button class="diet-btn veg-btn" data-type="veg" onclick="FHP.setDietFilter('veg', this)">🟢 Veg</button>
+              <button class="diet-btn nv-btn" data-type="nonveg" onclick="FHP.setDietFilter('nonveg', this)">🔴 Non-Veg</button>
+            </div>
+            
+            <div class="menu-search-wrap">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="menu-search" placeholder="Search in menu..." oninput="FHP.renderMenu()">
+            </div>
+
+            <select id="sort-filter" class="sort-sel" onchange="FHP.renderMenu()">
+              <option value="none">Sort By</option>
+              <option value="low">Price: Low → High</option>
+              <option value="high">Price: High → Low</option>
+              <option value="rating">Top Rated</option>
+              <option value="popular">Most Popular</option>
+            </select>
+          </div>
+          
+          <div class="menu-meta-row">
+            <h3 id="menu-count-text">Showing 0 Items</h3>
+          </div>
+          <!-- "People also ordered" recommendation -->
+          <div id="also-ordered" class="also-ordered-wrap" style="display:none"></div>
+          <!-- Menu Grid -->
+          <div class="menu-grid" id="menu-grid"></div>
+        </div>
+
+        <!-- REVIEWS TAB -->
+        <div id="reviews-tab" class="tab-pane">
+          <div class="reviews-wrap" id="reviews-wrap"></div>
+          <button class="btn btn-outline mt-md" onclick="FHP.openReviewModal()">
+            <i class="fa-solid fa-pen"></i> Write a Review
+          </button>
+        </div>
+
+        <!-- INFO TAB -->
+        <div id="info-tab" class="tab-pane">
+          <div class="info-wrap" id="info-wrap"></div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ======================== -->
+    <!-- VIEW: CART               -->
+    <!-- ======================== -->
+    <section id="view-cart" class="view">
+      <div class="cart-page">
+        <div class="cart-left">
+          <h2 class="page-title"><i class="fa-solid fa-bag-shopping"></i> Your Cart</h2>
+          <div id="cart-items-wrap"></div>
+
+          <!-- Also ordered suggestions -->
+          <div id="cart-suggest" class="cart-suggest-block" style="display:none">
+            <h3>🤝 People also ordered</h3>
+            <div class="suggest-scroll" id="cart-suggest-row"></div>
+          </div>
+
+          <!-- Coupon Block -->
+          <div class="coupon-block glass">
+            <h3><i class="fa-solid fa-tag"></i> Apply Coupon</h3>
+            <div class="coupon-input-row">
+              <input type="text" id="coupon-input" placeholder="Enter promo code" style="text-transform:uppercase">
+              <button class="btn btn-accent" onclick="FHP.applyCoupon()">Apply</button>
+            </div>
+            <div class="coupon-chips" id="coupon-chips"></div>
+            <div id="coupon-msg" class="coupon-msg"></div>
+          </div>
+        </div>
+
+        <div class="cart-right">
+          <div class="bill-card glass">
+            <h3>🧾 Bill Summary</h3>
+            <div class="bill-rows" id="bill-rows"></div>
+            <button class="btn btn-primary btn-full btn-lg mt-md" id="checkout-btn" onclick="FHP.navigate('checkout')">
+              Proceed to Checkout <i class="fa-solid fa-arrow-right"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================== -->
+    <!-- VIEW: CHECKOUT           -->
+    <!-- ======================== -->
+    <section id="view-checkout" class="view">
+      <div class="checkout-page">
+        <div class="checkout-left">
+          <h2 class="page-title"><i class="fa-solid fa-location-dot"></i> Delivery Details</h2>
+
+          <!-- Address -->
+          <div class="checkout-card glass">
+            <h3>📍 Delivery Address</h3>
+            <div class="saved-addresses" id="saved-addresses"></div>
+            <div id="new-addr-form">
+              <div class="fld-group">
+                <label>Full Address</label>
+                <textarea id="co-address" rows="2" placeholder="Room no, Hostel / Block, Area"></textarea>
+              </div>
+              <div class="fld-row-2">
+                <div class="fld-group">
+                  <label>Landmark</label>
+                  <input type="text" id="co-landmark" placeholder="Near...">
+                </div>
+                <div class="fld-group">
+                  <label>Pincode</label>
+                  <input type="text" id="co-pin" placeholder="562110" maxlength="6">
+                </div>
+              </div>
+            </div>
+            <div class="fld-group mt-sm">
+              <label>Delivery Instructions (Optional)</label>
+              <input type="text" id="co-notes" placeholder="e.g. Leave at door, call on arrival...">
+            </div>
+          </div>
+
+          <!-- Payment -->
+          <div class="checkout-card glass mt-md">
+            <h3>💳 Payment Method</h3>
+            <div class="payment-opts" id="payment-opts">
+              <label class="pay-opt active" data-method="upi">
+                <input type="radio" name="payment" value="upi" checked>
+                <span class="pay-icon">📱</span>
+                <span class="pay-lbl">UPI (BHIM, PhonePe, GPay)</span>
+              </label>
+              <label class="pay-opt" data-method="card">
+                <input type="radio" name="payment" value="card">
+                <span class="pay-icon">💳</span>
+                <span class="pay-lbl">Credit / Debit Card</span>
+              </label>
+              <label class="pay-opt" data-method="wallet">
+                <input type="radio" name="payment" value="wallet">
+                <span class="pay-icon">👜</span>
+                <span class="pay-lbl">FHP Wallet (₹0 balance)</span>
+              </label>
+              <label class="pay-opt" data-method="cod">
+                <input type="radio" name="payment" value="cod">
+                <span class="pay-icon">💵</span>
+                <span class="pay-lbl">Cash on Delivery</span>
+              </label>
+            </div>
+
+            <!-- UPI sub-form -->
+            <div id="upi-subform" class="sub-pay-form">
+              <input type="text" id="upi-id" placeholder="yourname@upi">
+            </div>
+            <!-- Card sub-form -->
+            <div id="card-subform" class="sub-pay-form" style="display:none">
+              <input type="text" id="card-num" placeholder="Card Number" maxlength="19">
+              <div class="fld-row-2">
+                <input type="text" id="card-exp" placeholder="MM/YY" maxlength="5">
+                <input type="text" id="card-cvv" placeholder="CVV" maxlength="3">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="checkout-right">
+          <div class="bill-card glass">
+            <h3>🛒 Order Summary</h3>
+            <div id="co-items-list" class="co-items"></div>
+            <div class="bill-rows" id="co-bill-rows"></div>
+            <button class="btn btn-primary btn-full btn-lg mt-md" onclick="FHP.placeOrder()">
+              <i class="fa-solid fa-lock"></i> Place Order Securely
+            </button>
+            <p class="safe-pay">🔒 100% Secure Payments</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================== -->
+    <!-- VIEW: TRACKING           -->
+    <!-- ======================== -->
+    <section id="view-tracking" class="view">
+      <div class="tracking-page">
+        <div class="tracking-card glass">
+          <div class="track-order-id">
+            <span>Order #<span id="tr-order-id" class="accent">--</span></span>
+            <span class="track-eta"><i class="fa-solid fa-clock"></i> ETA: <strong id="tr-eta">--</strong></span>
+          </div>
+
+          <!-- Animated Progress Steps -->
+          <div class="track-steps" id="track-steps">
+            <div class="track-step" id="ts-confirmed">
+              <div class="ts-icon"><i class="fa-solid fa-clipboard-check"></i></div>
+              <div class="ts-line"></div>
+              <p class="ts-label">Order<br>Confirmed</p>
+            </div>
+            <div class="track-step" id="ts-preparing">
+              <div class="ts-icon"><i class="fa-solid fa-fire-burner"></i></div>
+              <div class="ts-line"></div>
+              <p class="ts-label">Being<br>Prepared 🍳</p>
+            </div>
+            <div class="track-step" id="ts-picked">
+              <div class="ts-icon"><i class="fa-solid fa-bag-shopping"></i></div>
+              <div class="ts-line"></div>
+              <p class="ts-label">Picked Up<br>🎒</p>
+            </div>
+            <div class="track-step" id="ts-way">
+              <div class="ts-icon"><i class="fa-solid fa-motorcycle"></i></div>
+              <div class="ts-line"></div>
+              <p class="ts-label">On the<br>Way 🚀</p>
+            </div>
+            <div class="track-step" id="ts-delivered">
+              <div class="ts-icon"><i class="fa-solid fa-house-circle-check"></i></div>
+              <div class="ts-line last-line"></div>
+              <p class="ts-label">Delivered<br>✅</p>
+            </div>
+          </div>
+
+          <!-- Status Message -->
+          <div class="track-status-msg">
+            <div class="status-anim" id="status-anim">🍳</div>
+            <p class="status-text" id="tr-status-text">Confirming your order...</p>
+          </div>
+
+          <!-- Fake Map -->
+          <div class="fake-map" id="fake-map">
+            <div class="map-bg"></div>
+            <div class="map-rider" id="map-rider">🛵</div>
+            <div class="map-dest">🏠</div>
+            <div class="map-rest">🍽️</div>
+          </div>
+
+          <!-- Delivery Agent -->
+          <div class="agent-card glass" id="agent-card" style="display:none">
+            <div class="agent-avatar" id="agent-avatar">🏍️</div>
+            <div class="agent-info">
+              <h4 id="agent-name">Raju Kumar</h4>
+              <div class="agent-rating"><i class="fa-solid fa-star"></i> <span id="agent-rating">4.8</span></div>
+              <p class="agent-bike" id="agent-bike">Honda Activa</p>
+            </div>
+            <a id="agent-call" href="" class="btn btn-outline btn-sm">
+              <i class="fa-solid fa-phone"></i> Call
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================== -->
+    <!-- VIEW: ORDERS             -->
+    <!-- ======================== -->
+    <section id="view-orders" class="view">
+      <h2 class="page-title"><i class="fa-solid fa-receipt"></i> My Orders</h2>
+      <div id="orders-list" class="orders-list"></div>
+    </section>
+
+    <!-- ======================== -->
+    <!-- VIEW: WISHLIST           -->
+    <!-- ======================== -->
+    <section id="view-wishlist" class="view">
+      <h2 class="page-title"><i class="fa-solid fa-heart"></i> Wishlist</h2>
+      <div id="wishlist-grid" class="rest-grid"></div>
+    </section>
+
+    <!-- ======================== -->
+    <!-- VIEW: PROFILE            -->
+    <!-- ======================== -->
+    <section id="view-profile" class="view">
+      <div class="profile-page" id="profile-page"></div>
+    </section>
+
+  </main>
+
+  <!-- ===================================== -->
+  <!-- FLOATING CART PREVIEW               -->
+  <!-- ===================================== -->
+  <div id="float-cart" class="float-cart glass" style="display:none" onclick="FHP.navigate('cart')">
+    <div class="fc-left">
+      <span id="fc-count">0 items</span>
+      <span id="fc-rest-name">-</span>
+    </div>
+    <div class="fc-right">
+      <span id="fc-total">₹0</span>
+      <i class="fa-solid fa-arrow-right"></i>
+    </div>
+  </div>
+
+  <!-- ===================================== -->
+  <!-- TOAST NOTIFICATION                  -->
+  <!-- ===================================== -->
+  <div id="toast" class="toast glass"></div>
+
+  <!-- ===================================== -->
+  <!-- SCRIPTS                             -->
+  <!-- ===================================== -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.0/vanilla-tilt.min.js"></script>
+  
+  <!-- Firebase (compat format for old v8 syntax used in the snippet) -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  
+  <!-- Internal Scripts -->
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/auth.js"></script>
+
+</body>
+</html>
