@@ -27,6 +27,7 @@ const FHP = {
         this.updateCartBadge();
         this.checkAuthUI();
         this.startLiveTicker();
+        this.detectLocation(); // 📍 auto-detect location
       }, 500);
     }, 1500);
 
@@ -38,6 +39,36 @@ const FHP = {
     }
     // NOTE: navSearch event is now handled via oninput= in HTML (no addEventListener here to avoid double-binding)
   },
+
+  // 📍 Detect user location
+  detectLocation() {
+    const el = document.getElementById('loc-place');
+    if(!el) return;
+    if(!navigator.geolocation) return;
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        // Reverse geocode using free API
+        fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`)
+          .then(r => r.json())
+          .then(data => {
+            const addr = data.address;
+            const place = addr.suburb || addr.neighbourhood || addr.city_district || addr.city || 'Your Location';
+            el.textContent = place + ' ▾';
+          })
+          .catch(() => { el.textContent = 'GITAM Campus ▾'; });
+      },
+      () => { el.textContent = 'GITAM Campus ▾'; },
+      { timeout: 5000 }
+    );
+  },
+
+  promptLocation() {
+    this.detectLocation();
+    this.showToast('📍 Detecting your location...');
+  },
+
 
   // ---- Navigation Engine ----
   navigate(viewId, payload = null) {
