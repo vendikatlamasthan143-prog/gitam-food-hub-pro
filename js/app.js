@@ -595,7 +595,7 @@ const FHP = {
   },
 
   renderCheckout() {
-    if(!APP_DATA.currentUser) { this.navigate('auth'); return; }
+    if(!APP_DATA.currentUser) { window.location.href = 'login.html'; return; }
     
     // items list small
     document.getElementById('co-items-list').innerHTML = this.cart.map(c => `
@@ -863,40 +863,60 @@ const FHP = {
   checkAuthUI() {
     const area = document.getElementById('auth-nav-area');
     if(APP_DATA.currentUser) {
-      const initial = APP_DATA.currentUser.name ? APP_DATA.currentUser.name[0].toUpperCase() : 'U';
-      area.innerHTML = `<button class="nav-btn-login" onclick="FHP.navigate('profile')"><div style="width:30px;height:30px;background:var(--accent);border-radius:50%;color:white;display:flex;align-items:center;justify-content:center;font-weight:800;">${initial}</div></button>`;
+      const u = APP_DATA.currentUser;
+      const initial = u.name ? u.name[0].toUpperCase() : 'U';
+      const avatarHTML = u.avatar
+        ? `<img src="${u.avatar}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid var(--accent);">`
+        : `<div style="width:30px;height:30px;background:var(--accent);border-radius:50%;color:white;display:flex;align-items:center;justify-content:center;font-weight:800;">${initial}</div>`;
+      area.innerHTML = `<button class="nav-btn-login" onclick="FHP.navigate('profile')">${avatarHTML}</button>`;
       const mnp = document.getElementById('mnav-profile');
-      if(mnp) mnp.querySelector('span').innerText = APP_DATA.currentUser.name.split(' ')[0];
+      if(mnp) mnp.querySelector('span').innerText = u.name.split(' ')[0];
     } else {
-      area.innerHTML = `<button class="nav-btn-login" onclick="FHP.navigate('auth')"><i class="fa-solid fa-user"></i> Login</button>`;
+      area.innerHTML = `<button class="nav-btn-login" onclick="window.location.href='login.html'"><i class="fa-solid fa-user"></i> Login</button>`;
     }
   },
 
-  // 🆕 Render Profile Page
+  // Render Profile Page (Google avatar + stats)
   renderProfile() {
     const profileView = document.getElementById('view-profile');
     if(!profileView) return;
-    if(!APP_DATA.currentUser) { this.navigate('auth'); return; }
+    if(!APP_DATA.currentUser) { window.location.href = 'login.html'; return; }
     const u = APP_DATA.currentUser;
+    const initial = u.name ? u.name[0].toUpperCase() : 'U';
+    const avatarHTML = u.avatar
+      ? `<img src="${u.avatar}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:3px solid var(--accent);">`
+      : `<div style="width:64px;height:64px;background:var(--accent);border-radius:50%;color:white;display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:800;">${initial}</div>`;
     profileView.innerHTML = `
-      <div style="padding: 24px; max-width: 500px; margin: 0 auto;">
-        <h2 style="font-weight:800; margin-bottom:24px;">👤 My Profile</h2>
-        <div style="background:var(--surface); border-radius:16px; padding:24px; box-shadow:0 4px 20px rgba(0,0,0,0.06); margin-bottom:20px;">
-          <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;">
-            <div style="width:56px;height:56px;background:var(--accent);border-radius:50%;color:white;display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:800;">${u.name[0].toUpperCase()}</div>
-            <div><div style="font-weight:800;font-size:1.1rem;">${u.name}</div><div style="color:var(--text-secondary);font-size:0.9rem;">+91 ${u.phone}</div></div>
+      <div style="padding:24px;max-width:480px;margin:0 auto;">
+        <h2 style="font-weight:800;margin-bottom:24px;">👤 My Profile</h2>
+        <div style="background:var(--surface);border-radius:16px;padding:28px;box-shadow:0 4px 20px rgba(0,0,0,.06);margin-bottom:20px;">
+          <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;">
+            ${avatarHTML}
+            <div>
+              <div style="font-weight:800;font-size:1.1rem;">${u.name}</div>
+              <div style="color:var(--text-secondary);font-size:.9rem;">${u.email || '+91 ' + (u.phone || '')}</div>
+            </div>
           </div>
-          <hr style="border:none;border-top:1px solid var(--border); margin-bottom:16px;">
-          <div style="font-size:0.9rem;color:var(--text-secondary);">Total Orders: <strong>${this.orders.length}</strong></div>
+          <hr style="border:none;border-top:1px solid var(--border);margin-bottom:16px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div style="background:var(--bg-color);border-radius:10px;padding:16px;text-align:center;">
+              <div style="font-size:1.6rem;font-weight:800;color:var(--accent);">${this.orders.length}</div>
+              <div style="font-size:.8rem;color:var(--text-secondary);">Total Orders</div>
+            </div>
+            <div style="background:var(--bg-color);border-radius:10px;padding:16px;text-align:center;">
+              <div style="font-size:1.6rem;font-weight:800;color:var(--success);">${this.wishlist.length}</div>
+              <div style="font-size:.8rem;color:var(--text-secondary);">Favourites</div>
+            </div>
+          </div>
         </div>
-        <button class="btn btn-outline" style="width:100%;" onclick="FHP.logout()">
+        <button class="btn" style="width:100%;background:#fee2e2;color:#ef4444;font-weight:700;border-radius:50px;" onclick="FHP.logout()">
           <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
         </button>
       </div>
     `;
   },
 
-  // 🆕 Logout
+  // Logout
   logout() {
     APP_DATA.currentUser = null;
     localStorage.removeItem('fhp_user');

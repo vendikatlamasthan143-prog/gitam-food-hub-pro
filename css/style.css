@@ -25,7 +25,7 @@
   --radius-full: 999px;
 
   /* Font */
-  --font: 'Outfit', sans-serif;
+  --font: 'Poppins', sans-serif;
 }
 
 [data-theme="dark"] {
