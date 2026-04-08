@@ -10,7 +10,11 @@ const FHP = {
   dietFilter: localStorage.getItem('fhp_dietFilter') || 'all',
   currentTheme: localStorage.getItem('theme') || 'light',
   currentView: 'home',
-  viewHistory: [],  // 🆕 Back Navigation History
+  viewHistory: [],
+  _isRendering: false,      // ✅ Guard: prevents double render
+  _isSearching: false,      // ✅ Guard: prevents duplicate search
+  _searchTimer: null,       // ✅ Debounce timer
+  _tickerTimer: null,       // ✅ Prevents duplicate ticker intervals
   
   // App Init
   init() {
@@ -26,25 +30,13 @@ const FHP = {
       }, 500);
     }, 1500);
 
-    // Vanilla Tilt init
+    // Vanilla Tilt (once)
     if(typeof VanillaTilt !== 'undefined') {
       VanillaTilt.init(document.querySelectorAll(".tilt-card"), {
         max: 5, speed: 400, glare: true, "max-glare": 0.2
       });
     }
-
-    // 🆕 Navbar search input listener
-    const navSearch = document.getElementById('search-input');
-    if(navSearch) {
-      navSearch.addEventListener('input', () => {
-        const val = navSearch.value.trim();
-        if(val.length > 0) {
-          this.navigate('search');
-          const pageInput = document.getElementById('search-page-input');
-          if(pageInput) { pageInput.value = val; this.pageSearch(val); }
-        }
-      });
-    }
+    // NOTE: navSearch event is now handled via oninput= in HTML (no addEventListener here to avoid double-binding)
   },
 
   // ---- Navigation Engine ----
@@ -97,6 +89,8 @@ const FHP = {
 
   // ---- Real-time / Live Ticker ----
   startLiveTicker() {
+    // ✅ Clear any existing ticker to prevent duplicate intervals
+    if(this._tickerTimer) clearInterval(this._tickerTimer);
     const msgs = [
       `🔥 ${Math.floor(Math.random()*15)+5} people are ordering Chicken Biryani right now!`,
       `⏳ Only 2 portions of Mutton Biryani left at Spice Garden!`,
@@ -104,7 +98,7 @@ const FHP = {
       `🛒 A user just ordered a Margherita Pizza!`
     ];
     let i = 0;
-    setInterval(() => {
+    this._tickerTimer = setInterval(() => {
       i = (i + 1) % msgs.length;
       const el = document.getElementById('live-msg');
       if(el) {
@@ -114,19 +108,24 @@ const FHP = {
     }, 4000);
   },
 
-  // ---- Home Rendering ----
+  // ---- Home Rendering (with guard) ----
   renderHome() {
-    // Categories
+    if(this._isRendering) return;   // ✅ prevent double render
+    this._isRendering = true;
+
+    // Categories — clear first
     const catRow = document.getElementById('category-row');
+    catRow.innerHTML = '';
     catRow.innerHTML = APP_DATA.categories.map(c => `
-      <div class="cat-item" onclick="FHP.navigate('search'); document.getElementById('search-page-input').value='${c.label}'; FHP.pageSearch('${c.label}')">
+      <div class="cat-item" onclick="FHP.navigate('search'); setTimeout(()=>{ const pi=document.getElementById('search-page-input'); if(pi){pi.value='${c.label}';FHP.pageSearch('${c.label}');} },100)">
         <div class="cat-icon-wrap">${c.icon}</div>
         <span class="cat-label">${c.label}</span>
       </div>
     `).join('');
 
-    // Offers - clickable with modal
+    // Offers — clear first
     const offRow = document.getElementById('offers-scroll');
+    offRow.innerHTML = '';
     const gradients = [
       'linear-gradient(135deg,#ff416c,#ff4b2b)',
       'linear-gradient(135deg,#11998e,#38ef7d)',
@@ -146,8 +145,11 @@ const FHP = {
 
     // Restaurants
     this.filterRestaurants('all');
-    
-    setTimeout(() => { document.getElementById('skeleton-grid').style.display='none'; document.getElementById('rest-grid').style.display='grid'; }, 500);
+    setTimeout(() => {
+      document.getElementById('skeleton-grid').style.display = 'none';
+      document.getElementById('rest-grid').style.display = 'grid';
+      this._isRendering = false;  // ✅ release guard after render
+    }, 500);
 
     // Personalization
     if(this.orders.length > 0) {
@@ -180,13 +182,14 @@ const FHP = {
       btnNode.classList.add('active');
     }
     
-    let list = APP_DATA.restaurants;
+    let list = [...APP_DATA.restaurants]; // ✅ copy array to avoid mutation
     if(filterType === 'veg') list = list.filter(r => r.isVegOnly);
     if(filterType === 'fast') list = list.sort((a,b) => a.deliveryTime - b.deliveryTime);
     if(filterType === 'rated') list = list.sort((a,b) => b.rating - a.rating);
     if(filterType === 'low') list = list.sort((a,b) => a.costForTwo - b.costForTwo);
 
     const grid = document.getElementById('rest-grid');
+    grid.innerHTML = '';  // ✅ always clear before render
     grid.innerHTML = list.map(r => this.createRestCard(r)).join('');
   },
 
@@ -397,6 +400,9 @@ const FHP = {
   },
 
   openCustomizer(item) {
+    // ✅ Lock body scroll when modal opens
+    document.body.style.overflow = 'hidden';
+
     let html = `<div class="cust-header"><div class="mi-type ${item.isVeg ? '' : 'nv'}"></div><div class="cust-name">${item.name}</div><div class="cust-price">₹${item.price}</div></div><div class="cust-body">`;
     
     item.customizations.forEach(g => {
@@ -437,7 +443,6 @@ const FHP = {
     let finalPrice = item.price;
     let custArr = [];
     
-    // validate
     let valid = true;
     document.querySelectorAll('.cust-group').forEach(grp => {
       if(grp.dataset.req === 'true') {
@@ -463,6 +468,8 @@ const FHP = {
   },
 
   closeCustomizer() {
+    // ✅ Restore body scroll when modal closes
+    document.body.style.overflow = '';
     document.getElementById('customizer-overlay').classList.remove('active');
     document.getElementById('customizer-modal').classList.remove('active');
   },
@@ -957,8 +964,14 @@ const FHP = {
     else { i.type = 'password'; icon.classList.replace('fa-eye-slash', 'fa-eye'); }
   },
 
-  // ---- 🔥 LIVE SEARCH DROPDOWN ----
+  // ---- 🔥 LIVE SEARCH DROPDOWN (Debounced 300ms) ----
   liveSearch(query) {
+    // \u2705 Debounce: only run after 300ms idle
+    if(this._searchTimer) clearTimeout(this._searchTimer);
+    this._searchTimer = setTimeout(() => this._doLiveSearch(query), 300);
+  },
+
+  _doLiveSearch(query) {
     const dropdown = document.getElementById('search-dropdown');
     const clearBtn = document.getElementById('clear-btn');
     const q = (query || '').toLowerCase().trim();
@@ -967,7 +980,7 @@ const FHP = {
 
     if(!q) {
       dropdown.classList.remove('visible');
-      dropdown.innerHTML = '';
+      dropdown.innerHTML = '';  // \u2705 clear before hiding
       return;
     }
 
@@ -1018,6 +1031,8 @@ const FHP = {
         `).join('');
       }
     }
+    // ✅ Clear dropdown before inserting new results
+    dropdown.innerHTML = '';
     dropdown.innerHTML = html;
 
     // Navigate to search page on Enter
@@ -1055,7 +1070,13 @@ const FHP = {
     const coupon = APP_DATA.coupons[couponCode];
     if(!coupon) return;
 
+    // ✅ Lock body scroll
+    document.body.style.overflow = 'hidden';
+
     title.innerHTML = `🎁 ${couponCode} — ${coupon.desc}`;
+
+    // ✅ Clear body before render
+    body.innerHTML = '';
 
     // Filter matching restaurants
     const matching = APP_DATA.restaurants.filter(r =>
@@ -1093,6 +1114,8 @@ const FHP = {
   },
 
   closeOfferModal() {
+    // ✅ Restore scroll
+    document.body.style.overflow = '';
     const o = document.getElementById('offer-modal-overlay');
     if(o) o.classList.remove('show');
   },
