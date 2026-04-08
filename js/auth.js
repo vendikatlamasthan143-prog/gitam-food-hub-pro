@@ -1,3 +1,4 @@
+// js/auth.js
 const firebaseConfig = {
   apiKey: "AIzaSyB4Qdlyz_KMgg_Ien24DmfFJCn3FNmMj0U",
   authDomain: "gitam-food-app.firebaseapp.com",
@@ -8,23 +9,28 @@ const firebaseConfig = {
   measurementId: "G-Z0EE3LBV4N"
 };
 
-firebase.initializeApp(firebaseConfig);
+// Ensure Firebase is initialized ONLY ONCE
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+
 const auth = firebase.auth();
 
 window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha', {
   size: 'invisible'
 });
-window.recaptchaVerifier.render();
 
-function sendOTP() {
-  const number = document.getElementById("phone").value;
-  if(number.length !== 10) {
+window.sendOTP = function() {
+  const number = document.getElementById("login-phone").value;
+  if(number.trim().length !== 10) {
     alert("Invalid number! Please enter 10 digits.");
     return;
   }
+  
   const phone = "+91" + number;
-
-  const btn = document.querySelector("#otp-step-1 .btn-primary");
+  
+  // Disable button while sending
+  const btn = document.querySelector("#otp-step-1 .btn-primary") || document.querySelector("button[onclick='sendOTP()']") || document.querySelector("button[onclick='window.sendOTP()']");
   if(btn) {
     btn.disabled = true;
     btn.innerText = "Sending...";
@@ -34,15 +40,16 @@ function sendOTP() {
     .then((confirmationResult) => {
       window.confirmationResult = confirmationResult;
       
-      // Show Success Toast/Alert
+      // Show success message after OTP sent
       alert("OTP Sent ✅");
       
-      // Update UI state
       document.getElementById('otp-step-1').style.display = 'none';
       document.getElementById('otp-step-2').style.display = 'block';
     })
-    .catch(function (error) {
+    .catch((error) => {
       console.error(error);
+      
+      // Show error message properly
       alert("Failed to send OTP: " + error.message);
       
       if(btn) {
@@ -50,38 +57,39 @@ function sendOTP() {
         btn.innerText = "Send OTP";
       }
 
-      // 🔥 RESET RECAPTCHA (VERY IMPORTANT)
+      // Reset recaptcha if error occurs
       window.recaptchaVerifier.render().then(function (widgetId) {
         grecaptcha.reset(widgetId);
       });
     });
 }
 
-function verifyOTP() {
-  const code = document.getElementById("otp").value;
+window.verifyOTP = function() {
+  const code = document.getElementById("login-otp").value;
   if(!code) {
     alert("Please enter the OTP code");
     return;
   }
 
-  const btn = document.getElementById("verifyBtn");
+  const btn = document.getElementById("verifyBtn") || document.querySelector("button[onclick='verifyOTP()']") || document.querySelector("button[onclick='window.verifyOTP()']");
   if(btn) {
     btn.disabled = true;
     btn.innerText = "Verifying...";
   }
 
-  confirmationResult.confirm(code)
+  // Use confirmationResult.confirm(code)
+  window.confirmationResult.confirm(code)
     .then((result) => {
       alert("Login Success 🎉");
       
-      // INTEGRATION: Save logged in user for main App!
       const user = result.user;
-      const currentUser = { name: "User", phone: user.phoneNumber };
+      const currentUser = { name: "Firebase User", phone: user.phoneNumber };
       localStorage.setItem('fhp_user', JSON.stringify(currentUser));
       
       window.location.href = "index.html"; 
     })
-    .catch(() => {
+    .catch((error) => {
+      console.error(error);
       alert("Wrong OTP ❌");
       if(btn) {
         btn.disabled = false;

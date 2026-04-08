@@ -4,10 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login - Food Hub Pro</title>
-  
-  <!-- Add Google Font to match the main app -->
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
-  
   <style>
     :root {
       --bg-color: #f7f9fa;
@@ -18,195 +15,71 @@
       --radius-lg: 24px;
       --font: 'Outfit', sans-serif;
     }
-    
-    * { 
-      margin: 0; 
-      padding: 0; 
-      box-sizing: border-box; 
-      font-family: var(--font), sans-serif; 
-    }
-    
-    body { 
-      background-color: var(--bg-color); 
-      color: var(--text-primary); 
-      display: flex; 
-      align-items: center; 
-      justify-content: center; 
-      min-height: 100vh; 
-      overflow: hidden; 
-      position: relative; 
-    }
-    
-    /* Food floating emojis */
-    .food-float { 
-      position: absolute; 
-      font-size: 3rem; 
-      animation: float 4s ease-in-out infinite; 
-      opacity: 0.8; 
-      z-index: 0; 
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: var(--font), sans-serif; }
+    body { background-color: var(--bg-color); color: var(--text-primary); display: flex; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; position: relative; }
+    .food-float { position: absolute; font-size: 3rem; animation: float 4s ease-in-out infinite; opacity: 0.8; z-index: 0; }
     .f1 { top: 15%; left: 10%; animation-delay: 0s; }
     .f2 { top: 60%; left: 80%; animation-delay: 1s; }
     .f3 { bottom: 20%; left: 20%; animation-delay: 1.5s; font-size: 4rem; }
     .f4 { top: 20%; right: 15%; animation-delay: 0.5s; }
-    
-    @keyframes float { 
-      0%, 100% { transform: translateY(0) rotate(0deg); } 
-      50% { transform: translateY(-20px) rotate(5deg); } 
-    }
-
-    /* Login Card - Clean Modern UI */
-    .auth-card {
-      background: var(--surface);
-      width: 100%;
-      max-width: 400px;
-      padding: 40px;
-      border-radius: var(--radius-lg);
-      box-shadow: 0 20px 40px rgba(0,0,0,0.08);
-      z-index: 10;
-      position: relative;
-    }
-    
-    .auth-title { 
-      font-size: 2rem; 
-      font-weight: 800; 
-      margin-bottom: 8px; 
-    }
-    
-    .auth-sub { 
-      color: var(--text-secondary); 
-      margin-bottom: 30px; 
-      font-size: 0.95rem; 
-      line-height: 1.4; 
-    }
-    
+    @keyframes float { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-20px) rotate(5deg); } }
+    .auth-card { background: var(--surface); width: 100%; max-width: 400px; padding: 40px; border-radius: var(--radius-lg); box-shadow: 0 20px 40px rgba(0,0,0,0.08); z-index: 10; position: relative; }
+    .auth-title { font-size: 2rem; font-weight: 800; margin-bottom: 8px; }
+    .auth-sub { color: var(--text-secondary); margin-bottom: 30px; font-size: 0.95rem; line-height: 1.4; }
     .fld-group { margin-bottom: 20px; }
-    
-    .fld-group label { 
-      display: block; 
-      margin-bottom: 8px; 
-      font-weight: 600; 
-      font-size: 0.9rem; 
-      color: var(--text-secondary); 
-    }
-    
-    .fld-row { 
-      display: flex; 
-      align-items: center; 
-      border: 1px solid #eef1f6; 
-      border-radius: 8px; 
-      background: #fafafa; 
-      overflow: hidden; 
-      transition: border-color 0.3s ease;
-    }
-    
+    .fld-group label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 0.9rem; color: var(--text-secondary); }
+    .fld-row { display: flex; align-items: center; border: 1px solid #eef1f6; border-radius: 8px; background: #fafafa; overflow: hidden; transition: border-color 0.3s ease; }
     .fld-row:focus-within { border-color: var(--accent); }
-    
-    .fld-prefix { 
-      padding: 14px; 
-      font-weight: 700; 
-      color: var(--text-secondary); 
-      border-right: 1px solid #eef1f6; 
-      background: var(--surface); 
-    }
-    
-    .fld-row input { 
-      flex: 1; 
-      padding: 14px; 
-      border: none; 
-      outline: none; 
-      background: transparent; 
-      font-size: 1rem; 
-    }
-    
-    #otp { 
-      padding-left: 16px;
-      text-align: center; 
-      letter-spacing: 4px; 
-      font-weight: 800; 
-    }
-
-    .btn { 
-      display: inline-flex; 
-      align-items: center; 
-      justify-content: center; 
-      width: 100%; 
-      padding: 14px; 
-      border-radius: 50px; 
-      font-weight: 700; 
-      font-size: 1rem; 
-      border: none; 
-      cursor: pointer; 
-      transition: all 0.2s ease; 
-    }
-    
+    .fld-prefix { padding: 14px; font-weight: 700; color: var(--text-secondary); border-right: 1px solid #eef1f6; background: var(--surface); }
+    .fld-row input { flex: 1; padding: 14px; border: none; outline: none; background: transparent; font-size: 1rem; }
+    #login-otp { padding-left: 16px; text-align: center; letter-spacing: 4px; font-weight: 800; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; width: 100%; padding: 14px; border-radius: 50px; font-weight: 700; font-size: 1rem; border: none; cursor: pointer; transition: all 0.2s ease; }
     .btn:active { transform: scale(0.96); }
-    
-    .btn-primary { 
-      background: var(--accent); 
-      color: white; 
-      box-shadow: 0 4px 15px rgba(255, 69, 0, 0.3); 
-    }
-    
-    .btn-success { 
-      background: #10b981; 
-      color: white; 
-      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); 
-    }
-    
-    #recaptcha { 
-      margin-bottom: 20px; 
-      display: flex; 
-      justify-content: center; 
-    }
+    .btn-primary { background: var(--accent); color: white; box-shadow: 0 4px 15px rgba(255, 69, 0, 0.3); }
+    .btn-success { background: #10b981; color: white; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); }
+    #recaptcha { margin-bottom: 20px; display: flex; justify-content: center; }
   </style>
 </head>
 <body>
-
-  <!-- Floating Background Emojis -->
   <div class="food-float f1">🍕</div>
   <div class="food-float f2">🍔</div>
   <div class="food-float f3">🍜</div>
   <div class="food-float f4">🍟</div>
 
-  <!-- Login Card Core UI -->
   <div class="auth-card">
     <h2 class="auth-title">Welcome Back!</h2>
     <p class="auth-sub">Login to order food & track deliveries</p>
 
-    <!-- STEP 1: PHONE -->
+    <!-- UI structure to specifically meet all input ID requirements -->
     <div id="otp-step-1">
       <div class="fld-group">
         <label>Phone Number</label>
         <div class="fld-row">
           <span class="fld-prefix">+91</span>
-          <input type="tel" id="phone" placeholder="10-digit mobile number" maxlength="10" required>
+          <input type="tel" id="login-phone" placeholder="10-digit mobile number" maxlength="10" required>
         </div>
       </div>
       
-      <!-- Recaptcha Container -->
       <div id="recaptcha"></div>
       
-      <button class="btn btn-primary" onclick="sendOTP()">Send OTP</button>
+      <button class="btn btn-primary" onclick="window.sendOTP()">Send OTP</button>
     </div>
 
-    <!-- STEP 2: OTP (Hidden until sent) -->
+    <!-- Hidden OTP Form logic -->
     <div id="otp-step-2" style="display:none;">
       <div class="fld-group">
         <label>Enter Verification Code</label>
         <div class="fld-row">
-          <input type="text" id="otp" placeholder="Enter OTP" maxlength="6">
+          <input type="text" id="login-otp" placeholder="Enter OTP" maxlength="6">
         </div>
       </div>
-      <button class="btn btn-success" id="verifyBtn" onclick="verifyOTP()">Verify & Login</button>
+      <button class="btn btn-success" id="verifyBtn" onclick="window.verifyOTP()">Verify & Login</button>
     </div>
   </div>
 
-  <!-- FIREBASE SCRIPTS (COMPAT ONLY - NO MODULES) -->
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-
-  <!-- OTP LOGIC -->
+  <!-- FIREBASE SCRIPTS (V 10.12.2 CDN loaded BEFORE auth.js logic) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="js/auth.js"></script>
 </body>
 </html>
