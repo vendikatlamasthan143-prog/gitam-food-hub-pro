@@ -10,6 +10,7 @@ const FHP = {
   dietFilter: localStorage.getItem('fhp_dietFilter') || 'all',
   currentTheme: localStorage.getItem('theme') || 'light',
   currentView: 'home',
+  viewHistory: [],  // 🆕 Back Navigation History
   
   // App Init
   init() {
@@ -31,12 +32,31 @@ const FHP = {
         max: 5, speed: 400, glare: true, "max-glare": 0.2
       });
     }
+
+    // 🆕 Navbar search input listener
+    const navSearch = document.getElementById('search-input');
+    if(navSearch) {
+      navSearch.addEventListener('input', () => {
+        const val = navSearch.value.trim();
+        if(val.length > 0) {
+          this.navigate('search');
+          const pageInput = document.getElementById('search-page-input');
+          if(pageInput) { pageInput.value = val; this.pageSearch(val); }
+        }
+      });
+    }
   },
 
   // ---- Navigation Engine ----
   navigate(viewId, payload = null) {
+    // Track history for back navigation
+    if (this.currentView !== viewId) {
+      this.viewHistory.push(this.currentView);
+    }
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-    document.getElementById(`view-${viewId}`).classList.add('active');
+    const targetView = document.getElementById(`view-${viewId}`);
+    if (!targetView) { console.warn('View not found:', viewId); return; }
+    targetView.classList.add('active');
     this.currentView = viewId;
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
@@ -44,9 +64,30 @@ const FHP = {
     if(viewId === 'menu') this.renderMenuPage(payload);
     if(viewId === 'cart') this.renderCart();
     if(viewId === 'checkout') this.renderCheckout();
-    if(viewId === 'search') document.getElementById('search-page-input').focus();
+    if(viewId === 'search') {
+      this.renderSearchPage();
+      setTimeout(() => { const el = document.getElementById('search-page-input'); if(el) el.focus(); }, 100);
+    }
     if(viewId === 'orders') this.renderOrders();
     if(viewId === 'wishlist') this.renderWishlist();
+    if(viewId === 'profile') this.renderProfile();
+  },
+
+  // 🆕 Go Back in history
+  goBack() {
+    if (this.viewHistory.length > 0) {
+      const prev = this.viewHistory.pop();
+      // Navigate without adding to history again
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      const t = document.getElementById(`view-${prev}`);
+      if(t) t.classList.add('active');
+      this.currentView = prev;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if(prev === 'home') this.renderHome();
+      if(prev === 'search') this.renderSearchPage();
+    } else {
+      this.navigate('home');
+    }
   },
 
   setMobNav(btn) {
@@ -106,6 +147,24 @@ const FHP = {
       document.getElementById('recommended-section').style.display = 'block';
       this.renderPersonalized();
     }
+  },
+
+  // 🆕 Render personalized items from past orders
+  renderPersonalized() {
+    const recRow = document.getElementById('recommended-row');
+    if(!recRow) return;
+    const orderedItemIds = this.orders.flatMap(o => o.items.map(i => i.baseId || i.id));
+    const allItems = [];
+    APP_DATA.restaurants.forEach(r => r.menu.forEach(m => allItems.push({ ...m, restId: r.id, restName: r.name })));
+    const recs = allItems.filter(m => orderedItemIds.includes(m.id)).slice(0, 5);
+    if(recs.length === 0) { document.getElementById('recommended-section').style.display = 'none'; return; }
+    recRow.innerHTML = recs.map(m => `
+      <div class="suggest-card" onclick="FHP.navigate('menu','${m.restId}')">
+        <img src="${m.image}" style="width:100%;height:90px;object-fit:cover;border-radius:8px;">
+        <div style="padding:8px;font-size:0.85rem;font-weight:700;">${m.name}</div>
+        <div style="padding:0 8px 8px;font-size:0.8rem;color:var(--text-secondary);">₹${m.price}</div>
+      </div>
+    `).join('');
   },
 
   filterRestaurants(filterType, btnNode = null) {
@@ -675,6 +734,95 @@ const FHP = {
     `}).join('');
   },
 
+  // 🆕 Render Wishlist
+  renderWishlist() {
+    const wl = document.getElementById('wishlist-grid');
+    if(!wl) return;
+    const favRests = APP_DATA.restaurants.filter(r => this.wishlist.includes(r.id));
+    if(favRests.length === 0) {
+      wl.innerHTML = `<div style="text-align:center;padding:50px;"><i class="fa-solid fa-heart" style="font-size:3rem;color:var(--border);"></i><p class="mt-md">No saved restaurants yet.</p></div>`;
+      return;
+    }
+    wl.innerHTML = favRests.map(r => this.createRestCard(r)).join('');
+  },
+
+  // 🆕 Search across all restaurants and menu items
+  renderSearchPage() {
+    const tChips = document.getElementById('trending-chips');
+    if(tChips) {
+      tChips.innerHTML = APP_DATA.trendingSearches.map(t =>
+        `<span class="trend-chip" onclick="document.getElementById('search-page-input').value='${t}'; FHP.pageSearch('${t}')">${t}</span>`
+      ).join('');
+    }
+    const catGrid = document.getElementById('search-cat-grid');
+    if(catGrid) {
+      catGrid.innerHTML = APP_DATA.categories.map(c =>
+        `<div class="cat-item" onclick="document.getElementById('search-page-input').value='${c.label}'; FHP.pageSearch('${c.label}')">
+          <div class="cat-icon-wrap">${c.icon}</div>
+          <span class="cat-label">${c.label}</span>
+        </div>`
+      ).join('');
+    }
+  },
+
+  pageSearch(query) {
+    const q = (query || '').toLowerCase().trim();
+    const trending = document.getElementById('search-trending');
+    const results = document.getElementById('search-results-page');
+    if(!q) {
+      if(trending) trending.style.display = 'block';
+      if(results) results.style.display = 'none';
+      return;
+    }
+    if(trending) trending.style.display = 'none';
+    if(results) results.style.display = 'block';
+
+    // Search restaurants
+    const matchedRests = APP_DATA.restaurants.filter(r =>
+      r.name.toLowerCase().includes(q) ||
+      r.cuisines.some(c => c.toLowerCase().includes(q))
+    );
+
+    // Search menu items across all restaurants
+    const matchedItems = [];
+    APP_DATA.restaurants.forEach(r => {
+      r.menu.forEach(m => {
+        if(m.name.toLowerCase().includes(q) || m.description.toLowerCase().includes(q) || r.name.toLowerCase().includes(q)) {
+          matchedItems.push({ ...m, restId: r.id, restName: r.name });
+        }
+      });
+    });
+
+    let html = '';
+    if(matchedRests.length > 0) {
+      html += `<h3 class="mt-md" style="margin-bottom:12px;">🍽️ Restaurants (${matchedRests.length})</h3>`;
+      html += matchedRests.map(r => this.createRestCard(r)).join('');
+    }
+    if(matchedItems.length > 0) {
+      html += `<h3 class="mt-md" style="margin:20px 0 12px;">🍔 Items (${matchedItems.length})</h3>`;
+      html += `<div class="menu-grid">`;
+      html += matchedItems.map(m => `
+        <div class="menu-item" onclick="FHP.navigate('menu','${m.restId}')" style="cursor:pointer;">
+          <div class="mi-info">
+            <div class="mi-type ${m.isVeg ? '' : 'nv'}"></div>
+            <div class="mi-name">${m.name}</div>
+            <div style="font-size:0.8rem;color:var(--accent);margin-bottom:4px;">from ${m.restName}</div>
+            <div class="mi-price">₹${m.price}</div>
+            <div class="mi-desc mt-sm">${m.description}</div>
+          </div>
+          <div class="mi-img-wrap">
+            <img src="${m.image}" class="mi-img" loading="lazy">
+          </div>
+        </div>
+      `).join('');
+      html += `</div>`;
+    }
+    if(matchedRests.length === 0 && matchedItems.length === 0) {
+      html = `<div style="text-align:center;padding:60px 20px;color:var(--text-secondary);"><div style="font-size:3rem;">🔍</div><h3 style="margin:12px 0;">No results for "${query}"</h3><p>Try another keyword or check spelling.</p></div>`;
+    }
+    if(results) results.innerHTML = html;
+  },
+
   // ---- Auth Engine ----
   switchAuthTab(type) {
     document.querySelectorAll('.atab').forEach(b => b.classList.remove('active'));
@@ -683,11 +831,12 @@ const FHP = {
     document.getElementById(`${type}-form`).classList.add('active-form');
   },
   
+  // Legacy password login (now replaced with OTP, keep for fallback)
   login(e) {
     e.preventDefault();
     const phone = document.getElementById('login-phone').value;
-    if(phone === '9876543210' || phone.length === 10) {
-      APP_DATA.currentUser = { name: "Test User", phone: phone };
+    if(phone.length === 10) {
+      APP_DATA.currentUser = { name: "User", phone: phone };
       localStorage.setItem('fhp_user', JSON.stringify(APP_DATA.currentUser));
       this.showToast('Login Successful ✅');
       this.checkAuthUI();
@@ -695,12 +844,65 @@ const FHP = {
     }
   },
 
+  // 🆕 Signup function
+  signup(e) {
+    e.preventDefault();
+    const name = document.getElementById('signup-name')?.value?.trim();
+    const phone = document.getElementById('signup-phone')?.value?.trim();
+    if(!name || !phone || phone.length !== 10) {
+      this.showToast('Please fill all fields correctly');
+      return;
+    }
+    APP_DATA.currentUser = { name, phone };
+    localStorage.setItem('fhp_user', JSON.stringify(APP_DATA.currentUser));
+    this.showToast(`Welcome, ${name}! 🎉`);
+    this.checkAuthUI();
+    this.navigate('home');
+  },
+
   checkAuthUI() {
     const area = document.getElementById('auth-nav-area');
     if(APP_DATA.currentUser) {
-      area.innerHTML = `<button class="nav-btn-login" onclick="FHP.navigate('profile')"><div style="width:30px;height:30px;background:var(--accent);border-radius:50%;color:white;display:flex;align-items:center;justify-content:center;font-weight:800;">${APP_DATA.currentUser.name[0]}</div></button>`;
-      document.getElementById('mnav-profile').querySelector('span').innerText = APP_DATA.currentUser.name.split(' ')[0];
+      const initial = APP_DATA.currentUser.name ? APP_DATA.currentUser.name[0].toUpperCase() : 'U';
+      area.innerHTML = `<button class="nav-btn-login" onclick="FHP.navigate('profile')"><div style="width:30px;height:30px;background:var(--accent);border-radius:50%;color:white;display:flex;align-items:center;justify-content:center;font-weight:800;">${initial}</div></button>`;
+      const mnp = document.getElementById('mnav-profile');
+      if(mnp) mnp.querySelector('span').innerText = APP_DATA.currentUser.name.split(' ')[0];
+    } else {
+      area.innerHTML = `<button class="nav-btn-login" onclick="FHP.navigate('auth')"><i class="fa-solid fa-user"></i> Login</button>`;
     }
+  },
+
+  // 🆕 Render Profile Page
+  renderProfile() {
+    const profileView = document.getElementById('view-profile');
+    if(!profileView) return;
+    if(!APP_DATA.currentUser) { this.navigate('auth'); return; }
+    const u = APP_DATA.currentUser;
+    profileView.innerHTML = `
+      <div style="padding: 24px; max-width: 500px; margin: 0 auto;">
+        <h2 style="font-weight:800; margin-bottom:24px;">👤 My Profile</h2>
+        <div style="background:var(--surface); border-radius:16px; padding:24px; box-shadow:0 4px 20px rgba(0,0,0,0.06); margin-bottom:20px;">
+          <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;">
+            <div style="width:56px;height:56px;background:var(--accent);border-radius:50%;color:white;display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:800;">${u.name[0].toUpperCase()}</div>
+            <div><div style="font-weight:800;font-size:1.1rem;">${u.name}</div><div style="color:var(--text-secondary);font-size:0.9rem;">+91 ${u.phone}</div></div>
+          </div>
+          <hr style="border:none;border-top:1px solid var(--border); margin-bottom:16px;">
+          <div style="font-size:0.9rem;color:var(--text-secondary);">Total Orders: <strong>${this.orders.length}</strong></div>
+        </div>
+        <button class="btn btn-outline" style="width:100%;" onclick="FHP.logout()">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
+        </button>
+      </div>
+    `;
+  },
+
+  // 🆕 Logout
+  logout() {
+    APP_DATA.currentUser = null;
+    localStorage.removeItem('fhp_user');
+    this.checkAuthUI();
+    this.showToast('Logged out successfully');
+    this.navigate('home');
   },
 
   // ---- Utils ----
